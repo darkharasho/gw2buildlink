@@ -72,6 +72,30 @@ Some commonly used ones are:
 Each endpoint supports filtering via `?ids=all` or by name-specific ID queries so you can look up individual values programmatically.
 See the [chat link format reference](https://wiki.guildwars2.com/wiki/Chat_link_format) for how these IDs map into the encoded build template payload.
 
+### Decoding chat links back to build data
+
+You can also start with an in-game chat link and expand it back into the component pieces.
+The decoder resolves palette identifiers, trait choices, weapons, and profession-specific data so you can inspect or manipulate the build programmatically.
+
+```ts
+const decoded = await decodeBuildTemplate('[&DQMGOyYvSx2AHYAdkwGGAFodWh0HAQcBex17HQAAAAAAAAAAAAAAAAAAAAABCQEA]');
+
+console.log(decoded.profession);
+// { id: 'engineer', name: 'Engineer', code: 3 }
+
+console.log(decoded.specializations[0].traits);
+// [
+//   { tier: 'adept', choice: 3, traitId: 1003, name: 'Trait 1003' },
+//   { tier: 'master', choice: 2, traitId: 1005, name: 'Trait 1005' },
+//   { tier: 'grandmaster', choice: 3, traitId: 1009, name: 'Trait 1009' }
+// ]
+
+console.log(decoded.skills.terrestrial.utilities.map((skill) => skill.name));
+// ['Bomb Kit', 'Grenade Kit', 'Mortar Kit']
+```
+
+When decoding, the library requests profession palettes, trait metadata, pet information, and other lookups from the same `/v2` endpoints listed above so the resulting object contains both IDs and readable names wherever the API provides them.
+
 ## Development
 
 ```bash
