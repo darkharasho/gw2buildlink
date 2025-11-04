@@ -78,3 +78,44 @@ See the [chat link format reference](https://wiki.guildwars2.com/wiki/Chat_link_
 npm install
 npm run build
 ```
+
+## Local testing
+
+You can try the package in a local Node.js REPL before publishing it to npm.
+
+```bash
+# build the TypeScript sources
+npm run build
+
+# create an installable tarball and install it into a scratch project
+npm pack
+mkdir -p /tmp/gw2buildlink-playground
+cd /tmp/gw2buildlink-playground
+npm init -y
+npm install /workspace/gw2buildlink/gw2buildlink-*.tgz
+
+# launch a Node.js console with top-level await enabled
+node --experimental-repl-await
+```
+
+Inside the REPL you can import and exercise the library:
+
+```js
+const { encodeBuildTemplate, decodeBuildTemplate } = await import('gw2buildlink');
+const chat = await encodeBuildTemplate({
+  profession: 'Guardian',
+  specializations: [
+    { id: 'Zeal', traits: ['Fiery Wrath', 'Zealous Scepter', 'Symbolic Avenger'] },
+    { id: 'Radiance', traits: ['Righteous Instincts', 'Radiant Fire', 'Retribution'] },
+    { id: 'Dragonhunter', traits: ['Piercing Light', 'Bulwark', 'Big Game Hunter'] }
+  ]
+});
+await decodeBuildTemplate(chat);
+```
+
+When you're finished testing you can remove the temporary directory and tarball:
+
+```bash
+rm -rf /tmp/gw2buildlink-playground
+rm /workspace/gw2buildlink/gw2buildlink-*.tgz
+```
