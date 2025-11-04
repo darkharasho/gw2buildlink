@@ -2,12 +2,21 @@ import assert from 'node:assert/strict';
 import { decodeBuildTemplate, encodeBuildTemplate } from '../dist/index.js';
 
 const SKILL_METADATA = new Map([
-  [7552, { skillId: 5836, name: 'Healing Turret' }],
-  [403, { skillId: 5820, name: 'Bomb Kit' }],
-  [134, { skillId: 5804, name: 'Elixir Gun' }],
-  [7514, { skillId: 5927, name: 'Grenade Kit' }],
-  [263, { skillId: 5831, name: 'Mortar Kit' }],
-  [7547, { skillId: 5821, name: 'Supply Crate' }]
+  [7552, { skillId: 5836, name: 'Palette 7552' }],
+  [403, { skillId: 5820, name: 'Palette 403' }],
+  [134, { skillId: 5804, name: 'Palette 134' }],
+  [7514, { skillId: 5927, name: 'Palette 7514' }],
+  [263, { skillId: 5831, name: 'Palette 263' }],
+  [7547, { skillId: 5821, name: 'Palette 7547' }]
+]);
+
+const SKILL_NAMES = new Map([
+  [5836, 'Healing Turret'],
+  [5820, 'Bomb Kit'],
+  [5804, 'Elixir Gun'],
+  [5927, 'Grenade Kit'],
+  [5831, 'Mortar Kit'],
+  [5821, 'Supply Crate']
 ]);
 
 const SPECIALIZATIONS = new Map([
@@ -121,7 +130,7 @@ const mockApi = {
     return new Map(ids.map((id) => [id, { id, name: `Trait ${id}` }]));
   },
   async getSkillData(ids) {
-    return new Map(ids.map((id) => [id, { id, name: `Skill ${id}` }]));
+    return new Map(ids.map((id) => [id, { id, name: SKILL_NAMES.get(id) ?? `Skill ${id}` }]));
   },
   async getPetById(id) {
     return { id };
@@ -168,6 +177,8 @@ assert.deepEqual(decodedTraitIds, [
   [3001, 3006, 3007]
 ]);
 
+assert.equal(decoded.skills.terrestrial.heal.name, 'Healing Turret');
+assert.equal(decoded.skills.terrestrial.elite.name, 'Supply Crate');
 assert.deepEqual(decoded.skills.terrestrial.utilities.map((skill) => skill.name), [
   'Bomb Kit',
   'Grenade Kit',

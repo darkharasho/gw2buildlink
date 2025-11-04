@@ -15,6 +15,7 @@ import type {
   EncodeOptions,
   Gw2ApiClient,
   ProfessionSummary,
+  SkillData,
   SkillInput,
   SpecializationData,
   TraitChoice
@@ -240,11 +241,15 @@ export async function decodeBuildTemplate(link: string, options?: DecodeOptions)
   }
 
   const decodedSkills: DecodedSkill[] = [];
+  const decodedSkillIds = new Set<number>();
   for (let i = 0; i < SKILL_SLOT_ORDER.length; i++) {
     const descriptor = SKILL_SLOT_ORDER[i];
     const slotIndex = 'index' in descriptor ? descriptor.index : undefined;
     const paletteId = skillPalettes[i];
     const info = paletteId ? professionDetails.paletteById.get(paletteId) : undefined;
+    if (info?.skillId) {
+      decodedSkillIds.add(info.skillId);
+    }
     decodedSkills.push({
       environment: descriptor.environment,
       slot: descriptor.slot,
@@ -309,6 +314,9 @@ export async function decodeBuildTemplate(link: string, options?: DecodeOptions)
         continue;
       }
       const info = professionDetails.paletteById.get(palette);
+      if (info?.skillId) {
+        decodedSkillIds.add(info.skillId);
+      }
       revenantInactive.push({
         environment: 'terrestrial',
         slot: 'utility',
@@ -318,6 +326,36 @@ export async function decodeBuildTemplate(link: string, options?: DecodeOptions)
         name: info?.name
       });
     }
+  }
+
+  let decodedSkillMetadata: Map<number, SkillData> | undefined;
+  const getDecodedSkillMetadata = async (): Promise<Map<number, SkillData>> => {
+    if (!decodedSkillMetadata) {
+      decodedSkillMetadata = decodedSkillIds.size
+        ? await api.getSkillData(Array.from(decodedSkillIds))
+        : new Map();
+    }
+    return decodedSkillMetadata;
+  };
+
+  const applySkillNames = async (skills: DecodedSkill[]): Promise<void> => {
+    if (!decodedSkillIds.size) {
+      return;
+    }
+    const metadata = await getDecodedSkillMetadata();
+    for (const skill of skills) {
+      if (skill.skillId) {
+        const info = metadata.get(skill.skillId);
+        if (info?.name) {
+          skill.name = info.name;
+        }
+      }
+    }
+  };
+
+  await applySkillNames(decodedSkills);
+  if (revenantInactive) {
+    await applySkillNames(revenantInactive);
   }
 
   const weaponOutputs = weapons.map((id) => ({ id, name: WEAPON_ID_TO_NAME[id] }));
