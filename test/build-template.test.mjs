@@ -1,30 +1,17 @@
 import assert from 'node:assert/strict';
 import { encodeBuildTemplate } from '../dist/index.js';
 
-const skillPalettes = new Map([
-  [1001, { paletteId: 1001, skillId: 1001, name: 'Shelter' }],
-  [1002, { paletteId: 1002, skillId: 1002, name: 'Receive the Light!' }],
-  [1003, { paletteId: 1003, skillId: 1003, name: 'Stand Your Ground!' }],
-  [1004, { paletteId: 1004, skillId: 1004, name: 'Hold the Line!' }],
-  [1005, { paletteId: 1005, skillId: 1005, name: 'Retreat!' }],
-  [1006, { paletteId: 1006, skillId: 1006, name: 'Feel My Wrath!' }],
-  [2001, { paletteId: 2001, skillId: 2001, name: 'Litany of Wrath' }],
-  [2002, { paletteId: 2002, skillId: 2002, name: 'Purification' }],
-  [2003, { paletteId: 2003, skillId: 2003, name: 'Judge\'s Intervention' }],
-  [2004, { paletteId: 2004, skillId: 2004, name: 'Smite Condition' }],
-  [2005, { paletteId: 2005, skillId: 2005, name: 'Bane Signet' }],
-  [2006, { paletteId: 2006, skillId: 2006, name: 'Signet of Courage' }]
-]);
+const SKILL_PALETTES = new Set([7552, 403, 134, 7514, 263, 7547]);
 
 const mockApi = {
   async resolveProfession() {
-    return { id: 'guardian', name: 'Guardian', code: 1 };
+    return { id: 'engineer', name: 'Engineer', code: 3 };
   },
   async getProfessionDetails() {
     return {
-      id: 'guardian',
-      name: 'Guardian',
-      code: 1,
+      id: 'engineer',
+      name: 'Engineer',
+      code: 3,
       paletteById: new Map(),
       paletteBySkillId: new Map()
     };
@@ -34,12 +21,8 @@ const mockApi = {
     return {
       id,
       name: `Mock Specialization ${id}`,
-      profession: 'Guardian',
-      major_traits: [
-        10001, 10002, 10003,
-        10004, 10005, 10006,
-        10007, 10008, 10009
-      ]
+      profession: 'Engineer',
+      major_traits: [0, 0, 0, 0, 0, 0, 0, 0, 0]
     };
   },
   async resolveTraitChoices(_spec, traits) {
@@ -53,11 +36,10 @@ const mockApi = {
     if (value == null) {
       return { paletteId: 0 };
     }
-    const entry = typeof value === 'number' ? skillPalettes.get(value) : undefined;
-    if (!entry) {
-      throw new Error(`Unknown skill ${value}`);
+    if (typeof value !== 'number' || !SKILL_PALETTES.has(value)) {
+      throw new Error(`Unknown skill palette ${value}`);
     }
-    return entry;
+    return { paletteId: value };
   },
   async resolvePet(value) {
     return { id: typeof value === 'number' ? value : 0 };
@@ -67,16 +49,15 @@ const mockApi = {
   },
   async resolveWeapon(value) {
     if (typeof value === 'number') {
-      return { id: value };
+      if (value !== 265) {
+        throw new Error(`Unknown weapon id ${value}`);
+      }
+      return { id: value, name: 'spear' };
     }
-    const normalized = String(value).toLowerCase();
-    if (normalized === 'greatsword') {
-      return { id: 50, name: 'greatsword' };
+    if (String(value).toLowerCase() !== 'spear') {
+      throw new Error(`Unknown weapon ${value}`);
     }
-    if (normalized === 'scepter') {
-      return { id: 86, name: 'scepter' };
-    }
-    throw new Error(`Unknown weapon ${value}`);
+    return { id: 265, name: 'spear' };
   },
   async resolveOverrideSkill(value) {
     return { id: typeof value === 'number' ? value : 0 };
@@ -96,31 +77,31 @@ const mockApi = {
 };
 
 const buildInput = {
-  profession: 'Guardian',
+  profession: 'Engineer',
   specializations: [
-    { id: 1, traits: [1, 2, 3] },
-    { id: 2, traits: [3, 2, 1] },
-    { id: 3, traits: [2, 2, 2] }
+    { id: 6, traits: [3, 2, 3] },
+    { id: 38, traits: [3, 3, 2] },
+    { id: 75, traits: [1, 3, 1] }
   ],
   skills: {
     terrestrial: {
-      heal: 1001,
-      utilities: [1003, 1004, 1005],
-      elite: 1006
+      heal: 7552,
+      utilities: [403, 7514, 263],
+      elite: 7547
     },
     aquatic: {
-      heal: 2001,
-      utilities: [2003, 2004, 2005],
-      elite: 2006
+      heal: 7552,
+      utilities: [134, 7514, 263],
+      elite: 7547
     }
   },
-  weapons: ['greatsword', 'scepter']
+  weapons: [265]
 };
 
 const chatLink = await encodeBuildTemplate(buildInput, { api: mockApi });
 console.log('Encoded chat link:', chatLink);
 
-const expectedChatLink = '[&DQEBOQIbAyrpA9EH6wPTB+wD1AftA9UH7gPWBwAAAAAAAAAAAAAAAAAAAAACMgBWAAA=]';
+const expectedChatLink = '[&DQMGOyYvSx2AHYAdkwGGAFodWh0HAQcBex17HQAAAAAAAAAAAAAAAAAAAAABCQEA]';
 
 assert.equal(chatLink, expectedChatLink);
 console.log('Build template encoding test passed.');
