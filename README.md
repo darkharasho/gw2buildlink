@@ -146,3 +146,13 @@ When you're finished testing you can remove the temporary directory and tarball:
 rm -rf /tmp/gw2buildlink-playground
 rm /workspace/gw2buildlink/gw2buildlink-*.tgz
 ```
+
+### Live API smoke script
+
+To exercise the encoder and decoder against the live Guild Wars 2 API without mocks, run:
+
+```bash
+npm run live
+```
+
+The script rebuilds the library, encodes the sample build from the automated smoke test, and then decodes both the generated chat link and the known good link. Because it talks to the official API, make sure your environment has internet access before running it.
