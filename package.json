@@ -1,0 +1,22 @@
+{
+  "name": "gw2buildlink",
+  "version": "0.1.0",
+  "description": "Encode and decode Guild Wars 2 build template chat links.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "test": "npm run build --silent && node ./test/build-template.test.mjs",
+    "live": "npm run build --silent && node ./scripts/live-build-template.mjs"
+  },
+  "keywords": ["guild-wars-2", "gw2", "chat-link", "build-template"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "typescript": "^5.9.3"
+  }
+}
