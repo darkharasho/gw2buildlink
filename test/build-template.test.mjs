@@ -2,21 +2,21 @@ import assert from 'node:assert/strict';
 import { decodeBuildTemplate, encodeBuildTemplate } from '../dist/index.js';
 
 const SKILL_METADATA = new Map([
-  [7552, { skillId: 5836, name: 'Palette 7552' }],
-  [403, { skillId: 5820, name: 'Palette 403' }],
-  [134, { skillId: 5804, name: 'Palette 134' }],
-  [7514, { skillId: 5927, name: 'Palette 7514' }],
-  [263, { skillId: 5831, name: 'Palette 263' }],
-  [7547, { skillId: 5821, name: 'Palette 7547' }]
+  [7552, { skillId: 76738, name: 'Mitotic State' }],
+  [403, { skillId: 5927, name: 'Flamethrower' }],
+  [134, { skillId: 5805, name: 'Grenade Kit' }],
+  [7514, { skillId: 77209, name: 'Plasmatic State' }],
+  [263, { skillId: 5812, name: 'Bomb Kit' }],
+  [7547, { skillId: 76993, name: 'Flux State' }]
 ]);
 
 const SKILL_NAMES = new Map([
-  [5836, 'Healing Turret'],
-  [5820, 'Bomb Kit'],
-  [5804, 'Elixir Gun'],
-  [5927, 'Grenade Kit'],
-  [5831, 'Mortar Kit'],
-  [5821, 'Supply Crate']
+  [76738, 'Mitotic State'],
+  [5927, 'Flamethrower'],
+  [5805, 'Grenade Kit'],
+  [77209, 'Plasmatic State'],
+  [5812, 'Bomb Kit'],
+  [76993, 'Flux State']
 ]);
 
 const SPECIALIZATIONS = new Map([
@@ -177,12 +177,20 @@ assert.deepEqual(decodedTraitIds, [
   [3001, 3006, 3007]
 ]);
 
-assert.equal(decoded.skills.terrestrial.heal.name, 'Healing Turret');
-assert.equal(decoded.skills.terrestrial.elite.name, 'Supply Crate');
+assert.equal(decoded.skills.terrestrial.heal.name, 'Mitotic State');
+assert.equal(decoded.skills.terrestrial.elite.name, 'Flux State');
 assert.deepEqual(decoded.skills.terrestrial.utilities.map((skill) => skill.name), [
-  'Bomb Kit',
+  'Flamethrower',
+  'Plasmatic State',
+  'Bomb Kit'
+]);
+
+assert.equal(decoded.skills.aquatic.heal.name, 'Mitotic State');
+assert.equal(decoded.skills.aquatic.elite.name, 'Flux State');
+assert.deepEqual(decoded.skills.aquatic.utilities.map((skill) => skill.name), [
   'Grenade Kit',
-  'Mortar Kit'
+  'Plasmatic State',
+  'Bomb Kit'
 ]);
 
 assert.deepEqual(decoded.skills.aquatic.utilities.map((skill) => skill.paletteId), [134, 7514, 263]);

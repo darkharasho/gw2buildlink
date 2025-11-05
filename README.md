@@ -91,7 +91,10 @@ console.log(decoded.specializations[0].traits);
 // ]
 
 console.log(decoded.skills.terrestrial.utilities.map((skill) => skill.name));
-// ['Bomb Kit', 'Grenade Kit', 'Mortar Kit']
+// ['Flamethrower', 'Plasmatic State', 'Bomb Kit']
+
+console.log(decoded.skills.aquatic.utilities.map((skill) => skill.name));
+// ['Grenade Kit', 'Plasmatic State', 'Bomb Kit']
 ```
 
 When decoding, the library requests profession palettes, trait metadata, pet information, and other lookups from the same `/v2` endpoints listed above so the resulting object contains both IDs and readable names wherever the API provides them.
