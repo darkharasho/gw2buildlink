@@ -23,6 +23,13 @@ import type {
 
 const TIER_NAMES: TraitChoice['tier'][] = ['adept', 'master', 'grandmaster'];
 
+const MINIMUM_BUILD_TEMPLATE_LENGTH =
+  1 + // type
+  1 + // profession code
+  3 * 2 + // three specializations (id + trait byte)
+  SKILL_SLOT_ORDER.length * 2 + // ten skill palette entries
+  16; // profession specific data
+
 function encodeTraitByte(choices: [number, number, number]): number {
   const [adept, master, grandmaster] = choices.map((value) => Math.max(0, Math.min(3, value))) as [number, number, number];
   return adept | (master << 2) | (grandmaster << 4);
@@ -186,7 +193,7 @@ export async function decodeBuildTemplate(link: string, options?: DecodeOptions)
   const bytes = decodeChatCode(link);
   ensureBuildTemplate(bytes);
 
-  if (bytes.length < 1 + 1 + 6 + 20 + 16 + 1 + 1) {
+  if (bytes.length < MINIMUM_BUILD_TEMPLATE_LENGTH) {
     throw new Error('Chat link is too short to be a valid build template.');
   }
 
@@ -212,18 +219,32 @@ export async function decodeBuildTemplate(link: string, options?: DecodeOptions)
   const professionSpecific = bytes.slice(offset, offset + 16);
   offset += 16;
 
-  const weaponCount = bytes[offset++];
+  let weaponCount = 0;
   const weapons: number[] = [];
-  for (let i = 0; i < weaponCount; i++) {
-    weapons.push(readUint16(bytes, offset));
-    offset += 2;
+  if (offset < bytes.length) {
+    weaponCount = bytes[offset++];
+    const requiredBytes = weaponCount * 2;
+    if (offset + requiredBytes > bytes.length) {
+      throw new Error('Chat link ended unexpectedly while reading weapon data.');
+    }
+    for (let i = 0; i < weaponCount; i++) {
+      weapons.push(readUint16(bytes, offset));
+      offset += 2;
+    }
   }
 
-  const overrideCount = bytes[offset++];
+  let overrideCount = 0;
   const overrides: number[] = [];
-  for (let i = 0; i < overrideCount; i++) {
-    overrides.push(readUint32(bytes, offset));
-    offset += 4;
+  if (offset < bytes.length) {
+    overrideCount = bytes[offset++];
+    const requiredBytes = overrideCount * 4;
+    if (offset + requiredBytes > bytes.length) {
+      throw new Error('Chat link ended unexpectedly while reading skill override data.');
+    }
+    for (let i = 0; i < overrideCount; i++) {
+      overrides.push(readUint32(bytes, offset));
+      offset += 4;
+    }
   }
 
   if (offset !== bytes.length) {

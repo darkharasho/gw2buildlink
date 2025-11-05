@@ -198,4 +198,26 @@ assert.deepEqual(decoded.skills.aquatic.utilities.map((skill) => skill.paletteId
 assert.deepEqual(decoded.weapons, [{ id: 265, name: 'spear' }]);
 assert.deepEqual(decoded.skillOverrides, []);
 
+const truncatedChatLink =
+  '[&DQMGOyYvSx2AHYAdkwGGAFodWh0HAQcBex17HQAAAAAAAAAAAAAAAAAAAAA=]';
+const truncatedDecoded = await decodeBuildTemplate(truncatedChatLink, { api: mockApi });
+assert.deepEqual(truncatedDecoded.profession, { id: 'engineer', name: 'Engineer', code: 3 });
+assert.deepEqual(
+  truncatedDecoded.specializations.map((spec) => spec.traits.map((trait) => trait.traitId)),
+  [
+    [1003, 1005, 1009],
+    [2003, 2006, 2008],
+    [3001, 3006, 3007]
+  ]
+);
+assert.equal(truncatedDecoded.skills.terrestrial.heal.name, 'Mitotic State');
+assert.equal(truncatedDecoded.skills.terrestrial.elite.name, 'Flux State');
+assert.deepEqual(truncatedDecoded.skills.terrestrial.utilities.map((skill) => skill.name), [
+  'Flamethrower',
+  'Plasmatic State',
+  'Bomb Kit'
+]);
+assert.deepEqual(truncatedDecoded.weapons, []);
+assert.deepEqual(truncatedDecoded.skillOverrides, []);
+
 console.log('Build template encoding and decoding test passed.');
