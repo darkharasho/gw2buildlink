@@ -65,6 +65,26 @@ function normalize(input: string): string {
   return input.trim().toLowerCase();
 }
 
+function isSkillAllowedInEnvironment(
+  skill: SkillData | undefined,
+  environment: 'terrestrial' | 'aquatic'
+): boolean {
+  if (!skill) {
+    return true;
+  }
+  const flags = skill.flags ?? [];
+  if (environment === 'aquatic') {
+    if (flags.includes('NoUnderwater')) {
+      return false;
+    }
+  } else if (environment === 'terrestrial') {
+    if (flags.includes('UnderwaterOnly')) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export class DefaultGw2ApiClient {
   private professionSummariesPromise?: Promise<ProfessionSummary[]>;
   private professionByCode = new Map<number, ProfessionSummary>();
@@ -198,24 +218,40 @@ export class DefaultGw2ApiClient {
 
   async resolveSkillPalette(
     professionId: string,
-    value: TraitSelectionInput
+    value: TraitSelectionInput,
+    environment: 'terrestrial' | 'aquatic'
   ): Promise<{ paletteId: number; skillId?: number; name?: string }> {
     if (value == null) {
       return { paletteId: 0 };
     }
     const details = await this.getProfessionDetails(professionId);
+    const validateSkill = async (
+      paletteId: number,
+      skillId?: number,
+      name?: string
+    ): Promise<{ paletteId: number; skillId?: number; name?: string }> => {
+      if (!paletteId || !skillId) {
+        return { paletteId, skillId, name };
+      }
+      const skillData = await this.getSkillData([skillId]);
+      const skill = skillData.get(skillId);
+      if (!isSkillAllowedInEnvironment(skill, environment)) {
+        return { paletteId: 0 };
+      }
+      return { paletteId, skillId, name: name ?? skill?.name };
+    };
     if (typeof value === 'number') {
       if (value === 0) {
         return { paletteId: 0 };
       }
       if (details.paletteById.has(value)) {
         const info = details.paletteById.get(value)!;
-        return { paletteId: value, skillId: info.skillId, name: info.name };
+        return validateSkill(value, info.skillId, info.name);
       }
       if (details.paletteBySkillId.has(value)) {
         const paletteId = details.paletteBySkillId.get(value)!;
         const info = details.paletteById.get(paletteId);
-        return { paletteId, skillId: value, name: info?.name };
+        return validateSkill(paletteId, value, info?.name);
       }
       const skillData = await this.getSkillData([value]);
       const skill = skillData.get(value);
@@ -227,12 +263,12 @@ export class DefaultGw2ApiClient {
         throw new Error(`Skill ${value} is not available for profession ${professionId}`);
       }
       const info = details.paletteById.get(paletteId);
-      return { paletteId, skillId: value, name: info?.name ?? skill.name };
+      return validateSkill(paletteId, value, info?.name ?? skill.name);
     }
     const normalized = normalize(value);
     for (const [paletteId, info] of details.paletteById.entries()) {
       if (info.name && normalize(info.name) === normalized) {
-        return { paletteId, skillId: info.skillId, name: info.name };
+        return validateSkill(paletteId, info.skillId, info.name);
       }
     }
     const skill = await this.findSkillByName(normalized);
@@ -244,7 +280,7 @@ export class DefaultGw2ApiClient {
       throw new Error(`Skill ${skill.name ?? value} is not available for profession ${professionId}`);
     }
     const info = details.paletteById.get(paletteId);
-    return { paletteId, skillId: skill.id, name: info?.name ?? skill.name };
+    return validateSkill(paletteId, skill.id, info?.name ?? skill.name);
   }
 
   private async findSkillByName(normalizedName: string): Promise<SkillRaw | undefined> {
@@ -418,7 +454,7 @@ export class DefaultGw2ApiClient {
       const skillPromise = this.skillCache.get(id);
       if (skillPromise) {
         const skill = await skillPromise;
-        result.set(id, { id: skill.id, name: skill.name });
+        result.set(id, { id: skill.id, name: skill.name, flags: skill.flags });
       }
     }
     return result;

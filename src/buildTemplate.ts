@@ -136,7 +136,12 @@ export async function encodeBuildTemplate(input: BuildTemplateInput, options?: E
 
   const professionDetails = await api.getProfessionDetails(profession.id);
   for (let i = 0; i < SKILL_SLOT_ORDER.length; i++) {
-    const resolved = await api.resolveSkillPalette(professionDetails.id, getSkillInputForSlot(input.skills, i));
+    const descriptor = SKILL_SLOT_ORDER[i];
+    const resolved = await api.resolveSkillPalette(
+      professionDetails.id,
+      getSkillInputForSlot(input.skills, i),
+      descriptor.environment
+    );
     writeUint16(resolved.paletteId, bytes);
   }
 
@@ -157,7 +162,11 @@ export async function encodeBuildTemplate(input: BuildTemplateInput, options?: E
     }
     const inactiveSkills = input.revenantInactiveSkills ?? [];
     for (let i = 0; i < 6; i++) {
-      const selection = await api.resolveSkillPalette(professionDetails.id, inactiveSkills[i]);
+      const selection = await api.resolveSkillPalette(
+        professionDetails.id,
+        inactiveSkills[i],
+        'terrestrial'
+      );
       professionSpecific[4 + i * 2] = selection.paletteId & 0xff;
       professionSpecific[4 + i * 2 + 1] = (selection.paletteId >> 8) & 0xff;
     }
@@ -169,20 +178,26 @@ export async function encodeBuildTemplate(input: BuildTemplateInput, options?: E
   if (weapons.length > 8) {
     throw new Error('A maximum of eight weapons can be stored in a build template.');
   }
-  bytes.push(weapons.length);
-  for (const weaponInput of weapons) {
-    const weapon = await api.resolveWeapon(weaponInput);
-    writeUint16(weapon.id, bytes);
-  }
 
   const overrides = input.skillOverrides ?? [];
   if (overrides.length > 255) {
     throw new Error('Too many skill overrides.');
   }
-  bytes.push(overrides.length);
-  for (const overrideInput of overrides) {
-    const skill = await api.resolveOverrideSkill(overrideInput);
-    writeUint32(skill.id, bytes);
+
+  if (weapons.length > 0 || overrides.length > 0) {
+    bytes.push(weapons.length);
+    for (const weaponInput of weapons) {
+      const weapon = await api.resolveWeapon(weaponInput);
+      writeUint16(weapon.id, bytes);
+    }
+  }
+
+  if (overrides.length > 0) {
+    bytes.push(overrides.length);
+    for (const overrideInput of overrides) {
+      const skill = await api.resolveOverrideSkill(overrideInput);
+      writeUint32(skill.id, bytes);
+    }
   }
 
   return encodeChatCode(Uint8Array.from(bytes));

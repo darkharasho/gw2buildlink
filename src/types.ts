@@ -103,6 +103,7 @@ export interface TraitData {
 export interface SkillData {
   id: number;
   name?: string;
+  flags?: string[];
 }
 
 export interface ProfessionDetails {
@@ -125,7 +126,11 @@ export interface Gw2ApiClient {
   getProfessionDetails(id: string): Promise<ProfessionDetails>;
   resolveSpecialization(input: number | string): Promise<SpecializationData>;
   resolveTraitChoices(spec: SpecializationData, traits: [TraitSelectionInput?, TraitSelectionInput?, TraitSelectionInput?] | undefined): Promise<[number, number, number]>;
-  resolveSkillPalette(professionId: string, value: SkillInput): Promise<{ paletteId: number; skillId?: number; name?: string }>;
+  resolveSkillPalette(
+    professionId: string,
+    value: SkillInput,
+    environment: 'terrestrial' | 'aquatic'
+  ): Promise<{ paletteId: number; skillId?: number; name?: string }>;
   resolvePet(value: number | string | null | undefined): Promise<{ id: number; name?: string }>;
   resolveLegend(value: number | string | null | undefined): Promise<DecodedLegend>;
   resolveWeapon(value: number | string): Promise<DecodedWeapon>;
