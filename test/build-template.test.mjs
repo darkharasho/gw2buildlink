@@ -1,23 +1,38 @@
 import assert from 'node:assert/strict';
 import { decodeBuildTemplate, encodeBuildTemplate } from '../dist/index.js';
 
-const SKILL_METADATA = new Map([
-  [7552, { skillId: 76738, name: 'Mitotic State' }],
-  [403, { skillId: 5927, name: 'Flamethrower' }],
-  [134, { skillId: 5805, name: 'Grenade Kit' }],
-  [7514, { skillId: 77209, name: 'Plasmatic State' }],
-  [263, { skillId: 5812, name: 'Bomb Kit' }],
-  [7547, { skillId: 76993, name: 'Flux State' }]
+const PROFESSION_SKILL_METADATA = new Map([
+  [
+    'engineer',
+    new Map([
+      [7552, { skillId: 76738, name: 'Mitotic State', flags: [] }],
+      [403, { skillId: 5927, name: 'Flamethrower', flags: [] }],
+      [134, { skillId: 5805, name: 'Grenade Kit', flags: [] }],
+      [7514, { skillId: 77209, name: 'Plasmatic State', flags: [] }],
+      [263, { skillId: 5812, name: 'Bomb Kit', flags: [] }],
+      [7547, { skillId: 76993, name: 'Flux State', flags: [] }],
+      [9100, { skillId: 81000, name: 'Terrestrial Signet', flags: ['NoUnderwater'] }]
+    ])
+  ],
+  [
+    'necromancer',
+    new Map([
+      [3880, { skillId: 10612, name: 'Signet of Vampirism', flags: ['NoUnderwater'] }],
+      [371, { skillId: 10547, name: 'Well of Corruption', flags: ['NoUnderwater'] }],
+      [374, { skillId: 10548, name: 'Signet of the Locust', flags: ['NoUnderwater'] }],
+      [304, { skillId: 10557, name: 'Corrupt Boon', flags: ['NoUnderwater'] }],
+      [378, { skillId: 10581, name: 'Lich Form', flags: ['NoUnderwater'] }]
+    ])
+  ]
 ]);
 
-const SKILL_NAMES = new Map([
-  [76738, 'Mitotic State'],
-  [5927, 'Flamethrower'],
-  [5805, 'Grenade Kit'],
-  [77209, 'Plasmatic State'],
-  [5812, 'Bomb Kit'],
-  [76993, 'Flux State']
-]);
+const ALL_SKILL_METADATA = new Map(
+  Array.from(PROFESSION_SKILL_METADATA.values()).flatMap((metadata) => Array.from(metadata.entries()))
+);
+
+const SKILL_INFO_BY_ID = new Map(
+  Array.from(ALL_SKILL_METADATA.values()).map((info) => [info.skillId, info])
+);
 
 const SPECIALIZATIONS = new Map([
   [
@@ -46,30 +61,94 @@ const SPECIALIZATIONS = new Map([
       profession: 'Engineer',
       major_traits: [3001, 3002, 3003, 3004, 3005, 3006, 3007, 3008, 3009]
     }
+  ],
+  [
+    53,
+    {
+      id: 53,
+      name: 'Mock Specialization 53',
+      profession: 'Necromancer',
+      major_traits: [4001, 4002, 4003, 4004, 4005, 4006, 4007, 4008, 4009]
+    }
+  ],
+  [
+    39,
+    {
+      id: 39,
+      name: 'Mock Specialization 39',
+      profession: 'Necromancer',
+      major_traits: [5001, 5002, 5003, 5004, 5005, 5006, 5007, 5008, 5009]
+    }
+  ],
+  [
+    50,
+    {
+      id: 50,
+      name: 'Mock Specialization 50',
+      profession: 'Necromancer',
+      major_traits: [6001, 6002, 6003, 6004, 6005, 6006, 6007, 6008, 6009]
+    }
   ]
+]);
+
+const PROFESSION_SUMMARIES = new Map([
+  ['engineer', { id: 'engineer', name: 'Engineer', code: 3 }],
+  ['necromancer', { id: 'necromancer', name: 'Necromancer', code: 8 }]
+]);
+
+const PROFESSION_BY_CODE = new Map([
+  [3, 'engineer'],
+  [8, 'necromancer']
+]);
+
+const PROFESSION_ALIASES = new Map([
+  ['engineer', 'engineer'],
+  ['necromancer', 'necromancer']
 ]);
 
 const mockApi = {
   async resolveProfession(value) {
     if (typeof value === 'number') {
-      if (value !== 3) {
+      const key = PROFESSION_BY_CODE.get(value);
+      if (!key) {
         throw new Error(`Unknown profession code ${value}`);
       }
-      return { id: 'engineer', name: 'Engineer', code: 3 };
+      const summary = PROFESSION_SUMMARIES.get(key);
+      if (!summary) {
+        throw new Error(`Unknown profession code ${value}`);
+      }
+      return { ...summary };
     }
-    if (String(value).toLowerCase() !== 'engineer') {
+    const key = PROFESSION_ALIASES.get(String(value).toLowerCase());
+    if (!key) {
       throw new Error(`Unknown profession ${value}`);
     }
-    return { id: 'engineer', name: 'Engineer', code: 3 };
+    const summary = PROFESSION_SUMMARIES.get(key);
+    if (!summary) {
+      throw new Error(`Unknown profession ${value}`);
+    }
+    return { ...summary };
   },
-  async getProfessionDetails() {
+  async getProfessionDetails(input) {
+    let key;
+    if (typeof input === 'number') {
+      key = PROFESSION_BY_CODE.get(input);
+    } else if (typeof input === 'string') {
+      key = PROFESSION_ALIASES.get(input.toLowerCase()) ?? input.toLowerCase();
+    }
+    if (!key) {
+      throw new Error(`Unknown profession ${input}`);
+    }
+    const summary = PROFESSION_SUMMARIES.get(key);
+    if (!summary) {
+      throw new Error(`Unknown profession ${input}`);
+    }
+    const paletteById = PROFESSION_SKILL_METADATA.get(key) ?? new Map();
     return {
-      id: 'engineer',
-      name: 'Engineer',
-      code: 3,
-      paletteById: SKILL_METADATA,
+      ...summary,
+      paletteById,
       paletteBySkillId: new Map(
-        Array.from(SKILL_METADATA.entries(), ([paletteId, value]) => [value.skillId, paletteId])
+        Array.from(paletteById.entries(), ([paletteId, value]) => [value.skillId, paletteId])
       )
     };
   },
@@ -88,15 +167,29 @@ const mockApi = {
       Number(traits?.[2] ?? 0)
     ];
   },
-  async resolveSkillPalette(_professionId, value) {
+  async resolveSkillPalette(professionId, value, environment) {
     if (value == null) {
       return { paletteId: 0 };
     }
-    if (typeof value !== 'number' || !SKILL_METADATA.has(value)) {
+    const key = typeof professionId === 'string' ? professionId.toLowerCase() : undefined;
+    const paletteById = (key && PROFESSION_SKILL_METADATA.get(key)) ?? undefined;
+    if (!paletteById) {
+      throw new Error(`Unknown profession ${professionId}`);
+    }
+    const paletteId =
+      typeof value === 'number' ? value : Number.parseInt(String(value), 10);
+    if (!Number.isFinite(paletteId) || !paletteById.has(paletteId)) {
       throw new Error(`Unknown skill palette ${value}`);
     }
-    const info = SKILL_METADATA.get(value);
-    return { paletteId: value, skillId: info?.skillId, name: info?.name };
+    const info = paletteById.get(paletteId);
+    const flags = info?.flags ?? [];
+    if (environment === 'aquatic' && flags.includes('NoUnderwater')) {
+      return { paletteId: 0 };
+    }
+    if (environment === 'terrestrial' && flags.includes('UnderwaterOnly')) {
+      return { paletteId: 0 };
+    }
+    return { paletteId, skillId: info?.skillId, name: info?.name };
   },
   async resolvePet(value) {
     return { id: typeof value === 'number' ? value : 0 };
@@ -130,7 +223,12 @@ const mockApi = {
     return new Map(ids.map((id) => [id, { id, name: `Trait ${id}` }]));
   },
   async getSkillData(ids) {
-    return new Map(ids.map((id) => [id, { id, name: SKILL_NAMES.get(id) ?? `Skill ${id}` }]));
+    return new Map(
+      ids.map((id) => {
+        const metadata = SKILL_INFO_BY_ID.get(id);
+        return [id, { id, name: metadata?.name ?? `Skill ${id}`, flags: metadata?.flags ?? [] }];
+      })
+    );
   },
   async getPetById(id) {
     return { id };
@@ -159,7 +257,7 @@ const buildInput = {
   weapons: [265]
 };
 
-const expectedChatLink = '[&DQMGOyYvSx2AHYAdkwGGAFodWh0HAQcBex17HQAAAAAAAAAAAAAAAAAAAAABCQEA]';
+const expectedChatLink = '[&DQMGOyYvSx2AHYAdkwGGAFodWh0HAQcBex17HQAAAAAAAAAAAAAAAAAAAAABCQE=]';
 
 const chatLink = await encodeBuildTemplate(buildInput, { api: mockApi });
 console.log('Encoded chat link:', chatLink);
@@ -197,6 +295,80 @@ assert.deepEqual(decoded.skills.aquatic.utilities.map((skill) => skill.paletteId
 
 assert.deepEqual(decoded.weapons, [{ id: 265, name: 'spear' }]);
 assert.deepEqual(decoded.skillOverrides, []);
+
+const necromancerBuildInput = {
+  profession: 'Necromancer',
+  specializations: [
+    { id: 53, traits: [1, 3, 3] },
+    { id: 39, traits: [3, 2, 3] },
+    { id: 50, traits: [3, 2, 1] }
+  ],
+  skills: {
+    terrestrial: {
+      heal: 3880,
+      utilities: [371, 374, 304],
+      elite: 378
+    }
+  }
+};
+
+const expectedNecromancerChatLink =
+  '[&DQg1PSc7MhsoDwAAcwEAAHYBAAAwAQAAegEAAAAAAAAAAAAAAAAAAAAAAAA=]';
+
+const necromancerChatLink = await encodeBuildTemplate(necromancerBuildInput, { api: mockApi });
+console.log('Necromancer encoded chat link:', necromancerChatLink);
+assert.equal(necromancerChatLink, expectedNecromancerChatLink);
+
+const necromancerDecoded = await decodeBuildTemplate(necromancerChatLink, { api: mockApi });
+console.log('Necromancer decoded build template:', JSON.stringify(necromancerDecoded, null, 2));
+
+assert.deepEqual(necromancerDecoded.profession, {
+  id: 'necromancer',
+  name: 'Necromancer',
+  code: 8
+});
+
+assert.deepEqual(necromancerDecoded.specializations.map((spec) => spec.traits.map((trait) => trait.traitId)), [
+  [4001, 4006, 4009],
+  [5003, 5005, 5009],
+  [6003, 6005, 6007]
+]);
+
+assert.equal(necromancerDecoded.skills.terrestrial.heal.name, 'Signet of Vampirism');
+assert.deepEqual(necromancerDecoded.skills.terrestrial.utilities.map((skill) => skill.name), [
+  'Well of Corruption',
+  'Signet of the Locust',
+  'Corrupt Boon'
+]);
+assert.equal(necromancerDecoded.skills.terrestrial.elite.name, 'Lich Form');
+
+assert.equal(necromancerDecoded.skills.aquatic.heal.paletteId, 0);
+assert.deepEqual(necromancerDecoded.skills.aquatic.utilities.map((skill) => skill.paletteId), [0, 0, 0]);
+assert.equal(necromancerDecoded.skills.aquatic.elite.paletteId, 0);
+
+const terrestrialOnlyInput = {
+  ...buildInput,
+  skills: {
+    terrestrial: {
+      heal: 7552,
+      utilities: [9100, 7514, 263],
+      elite: 7547
+    },
+    aquatic: {
+      heal: 7552,
+      utilities: [9100, 7514, 263],
+      elite: 7547
+    }
+  }
+};
+
+const terrestrialOnlyLink = await encodeBuildTemplate(terrestrialOnlyInput, { api: mockApi });
+const terrestrialOnlyDecoded = await decodeBuildTemplate(terrestrialOnlyLink, { api: mockApi });
+
+assert.equal(terrestrialOnlyDecoded.skills.terrestrial.utilities[0].paletteId, 9100);
+assert.equal(terrestrialOnlyDecoded.skills.terrestrial.utilities[0].name, 'Terrestrial Signet');
+assert.equal(terrestrialOnlyDecoded.skills.aquatic.utilities[0].paletteId, 0);
+assert.equal(terrestrialOnlyDecoded.skills.aquatic.utilities[0].name, undefined);
 
 const truncatedChatLink =
   '[&DQMGOyYvSx2AHYAdkwGGAFodWh0HAQcBex17HQAAAAAAAAAAAAAAAAAAAAA=]';
